@@ -38,7 +38,8 @@ metadata:
   namespace: prow
   name: github-token
 stringData:
-  token: $(github-token)
+  cert: $(github-cert)
+  appid: $(github-appid)
 ---
 apiVersion: v1
 kind: Secret
@@ -99,16 +100,16 @@ data:
             path_strategy: explicit
           s3_credentials_secret: s3-credentials
           utility_images:
-            clonerefs: gcr.io/k8s-prow/clonerefs:v20210525-8b942ff77a
-            entrypoint: gcr.io/k8s-prow/entrypoint:v20210525-8b942ff77a
-            initupload: gcr.io/k8s-prow/initupload:v20210525-8b942ff77a
-            sidecar: gcr.io/k8s-prow/sidecar:v20210525-8b942ff77a
+            clonerefs: gcr.io/k8s-prow/clonerefs:v20220831-9211f751ea
+            entrypoint: gcr.io/k8s-prow/entrypoint:v20220831-9211f751ea
+            initupload: gcr.io/k8s-prow/initupload:v20220831-9211f751ea
+            sidecar: gcr.io/k8s-prow/sidecar:v20220831-9211f751ea
 
     tide:
       merge_method:
         machine-learning-exchange/mlx: squash
         machine-learning-exchange/katalog: squash
-        machine-learning-exchange/katalog: squash
+        machine-learning-exchange/testing: squash
       queries:
       - labels:
         - lgtm
@@ -120,105 +121,6 @@ data:
         - do-not-merge/invalid-owners-file
         orgs:
         - machine-learning-exchange
-      target_url: https://$(prow-ingress)/tide
-
-    decorate_all_jobs: true
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: prowjobs.prow.k8s.io
-  annotations:
-    "api-approved.kubernetes.io": "https://github.com/kubernetes/test-infra/pull/8669"
-spec:
-  group: prow.k8s.io
-  names:
-    kind: ProwJob
-    singular: prowjob
-    plural: prowjobs
-  scope: Namespaced
-  versions:
-  - name: v1
-    served: true
-    storage: true
-    schema:
-      openAPIV3Schema:
-        type: object
-        properties:
-          spec:
-            type: object
-            x-kubernetes-preserve-unknown-fields: true
-            properties:
-              max_concurrency:
-                type: integer
-                minimum: 0
-              type:
-                type: string
-                enum:
-                - "presubmit"
-                - "postsubmit"
-                - "periodic"
-                - "batch"
-          status:
-            type: object
-            x-kubernetes-preserve-unknown-fields: true
-            properties:
-              state:
-                type: string
-                enum:
-                - "triggered"
-                - "pending"
-                - "success"
-                - "failure"
-                - "aborted"
-                - "error"
-            anyOf:
-            - not:
-                properties:
-                  state:
-                    enum:
-                    - "success"
-                    - "failure"
-                    - "error"
-            - required:
-              - completionTime
-    additionalPrinterColumns:
-    - name: Job
-      type: string
-      description: The name of the job being run.
-      jsonPath: .spec.job
-    - name: BuildId
-      type: string
-      description: The ID of the job being run.
-      jsonPath: .status.build_id
-    - name: Type
-      type: string
-      description: The type of job being run.
-      jsonPath: .spec.type
-    - name: Org
-      type: string
-      description: The org for which the job is running.
-      jsonPath: .spec.refs.org
-    - name: Repo
-      type: string
-      description: The repo for which the job is running.
-      jsonPath: .spec.refs.repo
-    - name: Pulls
-      type: string
-      description: The pulls for which the job is running.
-      jsonPath: ".spec.refs.pulls[*].number"
-    - name: StartTime
-      type: date
-      description: When the job started running.
-      jsonPath: .status.startTime
-    - name: CompletionTime
-      type: date
-      description: When the job finished running.
-      jsonPath: .status.completionTime
-    - name: State
-      description: The state of the job.
-      type: string
-      jsonPath: .status.state
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -246,14 +148,21 @@ spec:
       terminationGracePeriodSeconds: 180
       containers:
       - name: hook
-        image: gcr.io/k8s-prow/hook:v20210525-8b942ff77a
+        image: gcr.io/k8s-prow/hook:v20220831-9211f751ea
         imagePullPolicy: Always
         args:
         - --dry-run=false
         - --config-path=/etc/config/config.yaml
-        - --github-token-path=/etc/github/token
         - --github-endpoint=http://ghproxy
         - --github-endpoint=https://api.github.com
+        - --github-app-id=$(GITHUB_APP_ID)
+        - --github-app-private-key-path=/etc/github/cert
+        env:
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: appid
         ports:
           - name: http
             containerPort: 8888
@@ -328,7 +237,7 @@ spec:
       serviceAccountName: "sinker"
       containers:
       - name: sinker
-        image: gcr.io/k8s-prow/sinker:v20210525-8b942ff77a
+        image: gcr.io/k8s-prow/sinker:v20220831-9211f751ea
         args:
         - --config-path=/etc/config/config.yaml
         - --dry-run=false
@@ -367,18 +276,25 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: deck
-        image: gcr.io/k8s-prow/deck:v20210525-8b942ff77a
+        image: gcr.io/k8s-prow/deck:v20220831-9211f751ea
         args:
         - --config-path=/etc/config/config.yaml
         - --plugin-config=/etc/plugins/plugins.yaml
         - --tide-url=http://tide/
         - --hook-url=http://hook:8888/plugin-help
-        - --github-token-path=/etc/github/token
         - --github-endpoint=http://ghproxy
         - --github-endpoint=https://api.github.com
         - --github-graphql-endpoint=http://ghproxy/graphql
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --spyglass=true
+        - --github-app-id=$(GITHUB_APP_ID)
+        - --github-app-private-key-path=/etc/github/cert
+        env:
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: appid
         ports:
           - name: http
             containerPort: 8080
@@ -457,7 +373,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: horologium
-        image: gcr.io/k8s-prow/horologium:v20210525-8b942ff77a
+        image: gcr.io/k8s-prow/horologium:v20220831-9211f751ea
         args:
         - --dry-run=false
         - --config-path=/etc/config/config.yaml
@@ -492,17 +408,24 @@ spec:
       serviceAccountName: "tide"
       containers:
       - name: tide
-        image: gcr.io/k8s-prow/tide:v20210525-8b942ff77a
+        image: gcr.io/k8s-prow/tide:v20220831-9211f751ea
         args:
         - --dry-run=false
         - --config-path=/etc/config/config.yaml
-        - --github-token-path=/etc/github/token
         - --github-endpoint=http://ghproxy
         - --github-endpoint=https://api.github.com
         - --github-graphql-endpoint=http://ghproxy/graphql
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --status-path=s3://tide/tide-status
         - --history-uri=s3://tide/tide-history.json
+        - --github-app-id=$(GITHUB_APP_ID)
+        - --github-app-private-key-path=/etc/github/cert
+        env:
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: appid
         ports:
           - name: http
             containerPort: 8888
@@ -548,6 +471,10 @@ metadata:
     # Change this to your issuer when using cert-manager. Does
     # nothing when not using cert-manager.
     cert-manager.io/cluster-issuer: letsencrypt-staging
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTP":8888}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: instance
+    kubernetes.io/ingress.class: alb
 spec:
   defaultBackend:
     # specify the default backend for `ingress-gce` (https://cloud.google.com/kubernetes-engine/docs/concepts/ingress#default_backend)
@@ -555,10 +482,6 @@ spec:
       name: deck
       port:
         number: 80
-  tls:
-  - hosts:
-    - $(prow-ingress)
-    secretName: $(ingress-tls-secret)
   rules:
   - host: $(prow-ingress)
     http:
@@ -599,17 +522,24 @@ spec:
       terminationGracePeriodSeconds: 180
       containers:
       - name: statusreconciler
-        image: gcr.io/k8s-prow/status-reconciler:v20210525-8b942ff77a
+        image: gcr.io/k8s-prow/status-reconciler:v20220831-9211f751ea
         args:
         - --dry-run=false
         - --continue-on-error=true
         - --plugin-config=/etc/plugins/plugins.yaml
         - --config-path=/etc/config/config.yaml
-        - --github-token-path=/etc/github/token
         - --github-endpoint=http://ghproxy
         - --github-endpoint=https://api.github.com
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --status-path=s3://status-reconciler/status-reconciler-status
+        - --github-app-id=$(GITHUB_APP_ID)
+        - --github-app-private-key-path=/etc/github/cert
+        env:
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: appid
         volumeMounts:
         - name: github-token
           mountPath: /etc/github
@@ -726,6 +656,7 @@ rules:
     verbs:
       - create
       - list
+      - watch
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -983,7 +914,7 @@ spec:
     spec:
       containers:
       - name: ghproxy
-        image: gcr.io/k8s-prow/ghproxy:v20210525-8b942ff77a
+        image: gcr.io/k8s-prow/ghproxy:v20220831-9211f751ea
         args:
         - --cache-dir=/cache
         - --cache-sizeGB=99
@@ -1041,11 +972,18 @@ spec:
         args:
         - --dry-run=false
         - --config-path=/etc/config/config.yaml
-        - --github-token-path=/etc/github/token
         - --github-endpoint=http://ghproxy
         - --github-endpoint=https://api.github.com
         - --enable-controller=plank
-        image: gcr.io/k8s-prow/prow-controller-manager:v20210525-8b942ff77a
+        - --github-app-id=$(GITHUB_APP_ID)
+        - --github-app-private-key-path=/etc/github/cert
+        env:
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: appid
+        image: gcr.io/k8s-prow/prow-controller-manager:v20220831-9211f751ea
         volumeMounts:
         - name: github-token
           mountPath: /etc/github
@@ -1180,16 +1118,23 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: crier
-        image: gcr.io/k8s-prow/crier:v20210525-8b942ff77a
+        image: gcr.io/k8s-prow/crier:v20220831-9211f751ea
         args:
         - --blob-storage-workers=10
         - --config-path=/etc/config/config.yaml
         - --s3-credentials-file=/etc/s3-credentials/service-account.json
         - --github-endpoint=http://ghproxy
         - --github-endpoint=https://api.github.com
-        - --github-token-path=/etc/github/token
         - --github-workers=10
         - --kubernetes-blob-storage-workers=10
+        - --github-app-id=$(GITHUB_APP_ID)
+        - --github-app-private-key-path=/etc/github/cert
+        env:
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: appid
         volumeMounts:
         - name: config
           mountPath: /etc/config
@@ -1303,11 +1248,11 @@ stringData:
   service-account.json: |
     {
       "region": "minio",
-      "access_key": "minio",
+      "access_key": "<<CHANGE_ME_MINIO_ROOT_USER>>",
       "endpoint": "minio.prow.svc.cluster.local",
       "insecure": true,
       "s3_force_path_style": true,
-      "secret_key": "minio123"
+      "secret_key": "<<CHANGE_ME_MINIO_ROOT_PASSWORD>>"
     }
 ---
 apiVersion: v1
@@ -1319,11 +1264,11 @@ stringData:
   service-account.json: |
     {
       "region": "minio",
-      "access_key": "minio",
+      "access_key": "<<CHANGE_ME_MINIO_ROOT_USER>>",
       "endpoint": "minio.prow.svc.cluster.local",
       "insecure": true,
       "s3_force_path_style": true,
-      "secret_key": "minio123"
+      "secret_key": "<<CHANGE_ME_MINIO_ROOT_PASSWORD>>"
     }
 ---
 apiVersion: apps/v1
@@ -1368,10 +1313,10 @@ spec:
         - server
         - /data
         env:
-        - name: MINIO_ACCESS_KEY
-          value: "minio"
-        - name: MINIO_SECRET_KEY
-          value: "minio123"
+        - name: MINIO_ROOT_USER
+          value: "<<CHANGE_ME_MINIO_ROOT_USER>>"
+        - name: MINIO_ROOT_PASSWORD
+          value: "<<CHANGE_ME_MINIO_ROOT_PASSWORD>>"
         - name: MINIO_REGION_NAME
           value: minio
         ports:
