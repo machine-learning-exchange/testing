@@ -7,20 +7,20 @@ configMapGenerator:
 - name: prow-parameters
   literals:
   # Update the credentials for the below fields before apply.
-  - github-token=
+  - github-cert=
+  - github-appid=
   - hmac-token=
   - prow-ingress=
-  - ingress-tls-secret=
 generatorOptions:
   disableNameSuffixHash: true
 vars:
-- name: github-token
+- name: github-cert
   objref:
     kind: ConfigMap
     name: prow-parameters
     apiVersion: v1
   fieldref:
-    fieldpath: data.github-token
+    fieldpath: data.github-cert
 - name: hmac-token
   objref:
     kind: ConfigMap
@@ -35,12 +35,12 @@ vars:
     apiVersion: v1
   fieldref:
     fieldpath: data.prow-ingress
-- name: ingress-tls-secret
+- name: github-appid
   objref:
     kind: ConfigMap
     name: prow-parameters
     apiVersion: v1
   fieldref:
-    fieldpath: data.ingress-tls-secret
+    fieldpath: data.github-appid
 configurations:
 - params.yaml
