@@ -1,10 +1,10 @@
-# Deploy MLX Prow Bot on IBM Cloud
+# Deploy MLX Prow Bot on AWS
 
-The MLX Prow Bot deployment is a modified version based on the [Prow s3 starter](https://github.com/kubernetes/test-infra/blob/master/config/prow/cluster/starter-s3.yaml) for IBM Cloud. Please follow the below instrctions to deploy/update the MLX Bot.
+The MLX Prow Bot deployment is a modified version based on the [Prow s3 starter](https://github.com/kubernetes/test-infra/blob/master/config/prow/cluster/starter-s3.yaml) for AWS. Please follow the below instrctions to deploy/update the MLX Bot.
 
 1. Update the credentials under the `prow-parameters` section in [kustomize/kustomization.yaml](kustomize/kustomization.yaml). The Bot credentials are located within the internal team's MLX folder.
 
-2. Once the credentials are updated, modify any configuration within [kustomize/prow-ibm-cloud.yaml](kustomize/prow-ibm-cloud.yaml) if necessary. Then, run the following commands to deploy the MLX Prow Bot on an IBM Cloud Kubernetes Cluster.
+2. Once the credentials are updated, modify any configuration within [kustomize/prow-ibm-cloud.yaml](kustomize/prow-ibm-cloud.yaml) if necessary. Then, run the following commands to deploy the MLX Prow Bot on an EKS.
 ```shell
 kubectl apply -k kustomize
 ```
