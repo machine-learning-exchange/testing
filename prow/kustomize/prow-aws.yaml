@@ -105,7 +105,7 @@ data:
             initupload: gcr.io/k8s-prow/initupload:v20220831-9211f751ea
             sidecar: gcr.io/k8s-prow/sidecar:v20220831-9211f751ea
 
-   tide:
+    tide:
       merge_method:
         machine-learning-exchange/mlx: squash
         machine-learning-exchange/katalog: squash
