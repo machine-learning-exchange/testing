@@ -110,6 +110,80 @@ data:
         machine-learning-exchange/mlx: squash
         machine-learning-exchange/katalog: squash
         machine-learning-exchange/testing: squash
+        kserve: squash
+      merge_commit_template:
+        kserve/prow-tests:
+          title: "{{ .Title }} (#{{ .Number }})"
+          body: |
+            {{ .Body }}
+
+            {{- $signedAuthors := .NormalizeSignedOffBy -}}
+            {{- if $signedAuthors -}}{{- "\n\n" -}}{{- end -}}
+            {{- range $index, $author := $signedAuthors -}}
+              {{- if $index -}}{{- "\n" -}}{{- end -}}
+              {{- "Signed-off-by:" }} {{ .Name }} <{{- .Email -}}>
+            {{- end -}}
+
+            {{- $coAuthors := .NormalizeCoAuthorBy -}}
+            {{- if $coAuthors -}}{{- "\n\n" -}}{{- end -}}
+            {{- range $index, $author := $coAuthors -}}
+              {{- if $index -}}{{- "\n" -}}{{- end -}}
+              {{- "Co-authored-by:" }} {{ .Name }} <{{- .Email -}}>
+            {{- end -}}
+        kserve/modelmesh-serving:
+          title: "{{ .Title }} (#{{ .Number }})"
+          body: |
+            {{ .Body }}
+
+            {{- $signedAuthors := .NormalizeSignedOffBy -}}
+            {{- if $signedAuthors -}}{{- "\n\n" -}}{{- end -}}
+            {{- range $index, $author := $signedAuthors -}}
+              {{- if $index -}}{{- "\n" -}}{{- end -}}
+              {{- "Signed-off-by:" }} {{ .Name }} <{{- .Email -}}>
+            {{- end -}}
+
+            {{- $coAuthors := .NormalizeCoAuthorBy -}}
+            {{- if $coAuthors -}}{{- "\n\n" -}}{{- end -}}
+            {{- range $index, $author := $coAuthors -}}
+              {{- if $index -}}{{- "\n" -}}{{- end -}}
+              {{- "Co-authored-by:" }} {{ .Name }} <{{- .Email -}}>
+            {{- end -}}
+        kserve/modelmesh:
+          title: "{{ .Title }} (#{{ .Number }})"
+          body: |
+            {{ .Body }}
+
+            {{- $signedAuthors := .NormalizeSignedOffBy -}}
+            {{- if $signedAuthors -}}{{- "\n\n" -}}{{- end -}}
+            {{- range $index, $author := $signedAuthors -}}
+              {{- if $index -}}{{- "\n" -}}{{- end -}}
+              {{- "Signed-off-by:" }} {{ .Name }} <{{- .Email -}}>
+            {{- end -}}
+
+            {{- $coAuthors := .NormalizeCoAuthorBy -}}
+            {{- if $coAuthors -}}{{- "\n\n" -}}{{- end -}}
+            {{- range $index, $author := $coAuthors -}}
+              {{- if $index -}}{{- "\n" -}}{{- end -}}
+              {{- "Co-authored-by:" }} {{ .Name }} <{{- .Email -}}>
+            {{- end -}}
+        kserve/modelmesh-runtime-adapter:
+          title: "{{ .Title }} (#{{ .Number }})"
+          body: |
+            {{ .Body }}
+
+            {{- $signedAuthors := .NormalizeSignedOffBy -}}
+            {{- if $signedAuthors -}}{{- "\n\n" -}}{{- end -}}
+            {{- range $index, $author := $signedAuthors -}}
+              {{- if $index -}}{{- "\n" -}}{{- end -}}
+              {{- "Signed-off-by:" }} {{ .Name }} <{{- .Email -}}>
+            {{- end -}}
+
+            {{- $coAuthors := .NormalizeCoAuthorBy -}}
+            {{- if $coAuthors -}}{{- "\n\n" -}}{{- end -}}
+            {{- range $index, $author := $coAuthors -}}
+              {{- if $index -}}{{- "\n" -}}{{- end -}}
+              {{- "Co-authored-by:" }} {{ .Name }} <{{- .Email -}}>
+            {{- end -}}
       queries:
       - labels:
         - lgtm
@@ -121,6 +195,8 @@ data:
         - do-not-merge/invalid-owners-file
         orgs:
         - machine-learning-exchange
+        - kserve
+      target_url: https://$(prow-ingress)/tide
 ---
 apiVersion: apps/v1
 kind: Deployment
