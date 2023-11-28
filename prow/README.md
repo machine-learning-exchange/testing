@@ -4,7 +4,7 @@ The MLX Prow Bot deployment is a modified version based on the [Prow s3 starter]
 
 1. Update the credentials under the `prow-parameters` section in [kustomize/kustomization.yaml](kustomize/kustomization.yaml). The Bot credentials are located within the internal team's MLX folder.
 
-2. Once the credentials are updated, modify any configuration within [kustomize/prow-ibm-cloud.yaml](kustomize/prow-ibm-cloud.yaml) if necessary. Then, run the following commands to deploy the MLX Prow Bot on an EKS.
+2. Once the credentials are updated, modify any configuration within [kustomize/prow-aws.yaml](kustomize/prow-aws.yaml) if necessary. Then, run the following commands to deploy the MLX Prow Bot on an EKS.
 ```shell
 kubectl apply -k kustomize
 ```
