@@ -31,6 +31,22 @@ data:
         - wip
         - yuks
         - lifecycle
+      kserve:
+        - approve
+        - assign
+        - blunderbuss
+        - cat
+        - dog
+        - help
+        - heart
+        - hold
+        - label
+        - lgtm
+        - trigger
+        - verify-owners
+        - wip
+        - yuks
+        - lifecycle
 ---
 apiVersion: v1
 kind: Secret
